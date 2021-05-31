@@ -1,0 +1,92 @@
+
+$All_AD_Groups = Get-ADGroup -Filter * -Properties ManagedBy
+
+foreach ($singleGroup in $All_AD_Groups)
+{
+  $managedBy = $singleGroup.ManagedBy;
+ $members = $singleGroup | Get-ADGroupMember -Recursive | select SamAccountName
+ #write-host $members.SamAccountName
+
+
+
+  if ($managedBy -ne $null)
+{
+$adobject = Get-adobject -Identity $managedBy -Properties type
+
+if($adobject.ObjectClass -eq 'user' ){
+ $manager = (get-aduser -Identity $managedBy -Properties emailAddress);
+ $managerSAN = $manager.SamAccountName;
+ $managerName = $manager.Name;
+ $managerEmail = $manager.emailAddress;
+ $typeobj = $adobject.ObjectClass;
+
+  Write-Host $manager.ObjectClass;
+ Write-Host $manager.EmailAddress;
+ }elseif ($adobject.ObjectClass -eq 'group' ){
+ $manager = (get-adgroup -Identity $managedBy -Properties mail);
+ $managerSAN = $manager.SamAccountName;
+ $managerName = $manager.Name;
+ $managerEmail = $manager.mail;
+ $typeobj = $adobject.ObjectClass;
+
+ Write-Host $manager.ObjectClass;
+  Write-Host $manager.mail;
+ }else {
+ 
+   
+ 
+ $managerSAN = $managedBy.SamAccountName;
+ $managerName = 'N/A';
+ $managerEmail = 'N/A';
+ $typeobj = $adobject.ObjectClass;
+ Write-Host $managedBy.SamAccountName;
+
+
+    }
+
+
+}
+else
+{
+ $managerName = 'N/A';
+ $managerEmail = 'N/A';
+ $managerSAN = 'N/A';
+ $typeobj = 'N/A';
+ Write-Host 'N/A';
+}
+
+$allmembers = ''
+
+foreach ($mem in $members)
+{
+
+$allmembers+= $mem.SamAccountName + ";" 
+
+}
+
+#Write-Host $allmembers
+
+#write-host  $managedBy;  
+#write-host  $manager.SamAccountName;
+#write-host  $managerName;
+#write-host  $managerEmail;
+#write-host  $singleGroup.SamAccountName;
+
+$resObject = New-Object -TypeName PSObject
+$resObject | Add-Member -MemberType NoteProperty -Name 'Group Name' -Value $singleGroup.SamAccountName
+$resObject | Add-Member -MemberType NoteProperty -Name 'Managed By Name' -Value $managerSAN
+$resObject | Add-Member -MemberType NoteProperty -Name 'Managed By Email' -Value $managerEmail
+$resObject | Add-Member -MemberType NoteProperty -Name 'Managed By Type' -Value $typeobj
+$resObject | Add-Member -MemberType NoteProperty -Name 'Group Memebers' -Value $allmembers
+
+
+#write-host $resObject
+
+$resObject  | export-csv -Path C:\TempScript\recGRPMEM.csv -NoTypeInformation -Append -Force
+$managedBy = ''
+$adobject = ''
+
+
+
+}
+
